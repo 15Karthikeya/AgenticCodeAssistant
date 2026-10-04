@@ -1,4 +1,4 @@
-# Agentic Code Assistant (`aca`)
+# Agentic Code Assistant 
 
 A command-line AI assistant you run **inside any other project** to ask questions about its code.
 
@@ -209,9 +209,6 @@ They run the *real* chunker, indexer, retriever, tools and LangGraph loop with a
 - Every `ask` re-hashes all files (cheap, but not free on huge monorepos); a file watcher or git-diff approach would scale better.
 - OpenAI-only; the LLM and embeddings are isolated in `agent/factory.py` and `rag/embeddings.py` for easy swapping.
 
-## Documentation for interview prep
-
-See [`docs/`](docs/): a 5-day study plan, concepts explained from zero, a code walkthrough, and interview Q&A.
 
 ## License
 
