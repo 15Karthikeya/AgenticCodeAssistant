@@ -1,0 +1,24 @@
+# Default settings. Override the whole file with the ACA_CONFIG env var.
+llm:
+  model: gpt-4o-mini          # override with OPENAI_MODEL
+  temperature: 0
+  timeout_seconds: 60
+
+embeddings:
+  model: text-embedding-3-small   # override with OPENAI_EMBEDDING_MODEL
+
+agent:
+  max_iterations: 10          # max reason->act cycles before the agent is forced to answer
+  max_tool_output_tokens: 3000  # every tool observation is trimmed to this many tokens
+
+rag:
+  persist_dir: .aca/chroma    # relative to the *target* project root
+  collection_name: codebase
+  top_k: 5
+  chunk_lines: 60             # max lines per chunk (larger functions are split)
+  chunk_overlap: 10           # overlap between split pieces
+  max_file_bytes: 200000      # skip files bigger than this (generated / minified code)
+  index_extensions: [.py, .md, .toml, .yaml, .yml, .json, .js, .ts, .tsx, .jsx, .go, .rs, .java]
+
+terminal:
+  timeout_seconds: 30
