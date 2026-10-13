@@ -1,0 +1,123 @@
+[
+  {
+    "input": "How does ExpenseStore.save decide whether to write the JSON file?",
+    "expected_output": "save() builds a fingerprint of the in-memory expenses with _fingerprint() and compares it to _disk_fingerprint from the last load/save. If they are equal it returns False and writes nothing; otherwise it writes the JSON file, updates _disk_fingerprint, and returns True.",
+    "context": [
+      "    def save(self) -> bool:\n        \"\"\"Persist to JSON. Returns False when contents are unchanged vs last load/save.\"\"\"\n        payload = self._fingerprint()\n        if payload == self._disk_fingerprint:\n            return False\n        self.path.parent.mkdir(parents=True, exist_ok=True)\n        self.path.write_text(json.dumps(self._to_json(), indent=2), encoding=\"utf-8\")\n        self._disk_fingerprint = payload\n        return True"
+    ],
+    "source_file": "expense_tracker/store.py"
+  },
+  {
+    "input": "What exception is raised when looking up or deleting an unknown expense id?",
+    "expected_output": "ExpenseNotFoundError, a subclass of KeyError. ExpenseStore.get raises it when the id is missing, and delete goes through get.",
+    "context": [
+      "class ExpenseNotFoundError(KeyError):\n    \"\"\"Raised when delete/get is called with an unknown expense id.\"\"\"",
+      "    def get(self, expense_id: str) -> Expense:\n        try:\n            return self._expenses[expense_id]\n        except KeyError as exc:\n            raise ExpenseNotFoundError(expense_id) from exc"
+    ],
+    "source_file": "expense_tracker/exceptions.py"
+  },
+  {
+    "input": "How does BudgetChecker.ensure_within_budget decide a category is over its limit?",
+    "expected_output": "It looks up the category's monthly limit (returning early if none is configured), adds the new amount to this month's spend from ExpenseStore.totals_by_category, and raises BudgetExceededError if that total is greater than the limit.",
+    "context": [
+      "    def ensure_within_budget(\n        self,\n        store: ExpenseStore,\n        *,\n        category: str,\n        amount: float,\n        today: date | None = None,\n    ) -> None:\n        limit = self.limit_for(category)\n        if limit is None:\n            return\n        day = today or date.today()\n        spent = store.totals_by_category(day.year, day.month).get(category.lower().strip(), 0.0)\n        attempted = spent + amount\n        if attempted > limit:\n            raise BudgetExceededError(category.lower().strip(), limit, attempted)"
+    ],
+    "source_file": "expense_tracker/budget.py"
+  },
+  {
+    "input": "What are the default monthly category limits in the CLI?",
+    "expected_output": "DEFAULT_LIMITS in cli.py: food 300.0, transport 120.0, fun 80.0.",
+    "context": [
+      "DEFAULT_LIMITS = {\"food\": 300.0, \"transport\": 120.0, \"fun\": 80.0}"
+    ],
+    "source_file": "expense_tracker/cli.py"
+  },
+  {
+    "input": "Does Expense allow an amount of zero or a negative amount?",
+    "expected_output": "No. Expense.__post_init__ raises ValueError('amount must be positive') when amount <= 0. It also raises ValueError if the category is blank.",
+    "context": [
+      "    def __post_init__(self) -> None:\n        if self.amount <= 0:\n            raise ValueError(\"amount must be positive\")\n        if not self.category.strip():"
+    ],
+    "source_file": "expense_tracker/models.py"
+  },
+  {
+    "input": "In what order does ExpenseStore.list_all return expenses?",
+    "expected_output": "Sorted by incurred_on in descending order, so the newest expenses come first.",
+    "context": [
+      "    def list_all(self) -> list[Expense]:\n        return sorted(self._expenses.values(), key=lambda e: e.incurred_on, reverse=True)"
+    ],
+    "source_file": "expense_tracker/store.py"
+  },
+  {
+    "input": "What exit code does the CLI return when adding an expense is rejected for exceeding the budget?",
+    "expected_output": "The add command catches BudgetExceededError, prints the error message, and returns exit code 2 without saving the expense.",
+    "context": [
+      "        except BudgetExceededError as exc:\n            print(exc)\n            return 2"
+    ],
+    "source_file": "expense_tracker/cli.py"
+  },
+  {
+    "input": "How does totals_by_category compute monthly spend per category?",
+    "expected_output": "It iterates over the expenses from for_month(year, month) and sums each expense's amount into a dict keyed by category.",
+    "context": [
+      "    def totals_by_category(self, year: int, month: int) -> dict[str, float]:\n        totals: dict[str, float] = {}\n        for expense in self.for_month(year, month):\n            totals[expense.category] = totals.get(expense.category, 0.0) + expense.amount\n        return totals"
+    ],
+    "source_file": "expense_tracker/store.py"
+  },
+  {
+    "input": "Are category names case-sensitive when an expense is added?",
+    "expected_output": "No. ExpenseStore.add lowercases and strips the category before storing the Expense.",
+    "context": [
+      "    def add(self, amount: float, category: str, note: str, incurred_on: date | None = None) -> Expense:\n        expense = Expense(\n            id=uuid4().hex[:8],\n            amount=amount,\n            category=category.lower().strip(),\n            note=note,\n            incurred_on=incurred_on or date.today(),\n        )\n        self._expenses[expense.id] = expense\n        return expense\n"
+    ],
+    "source_file": "expense_tracker/store.py"
+  },
+  {
+    "input": "What does the CLI delete command do when the expense id does not exist?",
+    "expected_output": "It catches ExpenseNotFoundError, prints 'unknown id: <id>', and returns exit code 1 without calling save.",
+    "context": [
+      "        except ExpenseNotFoundError:\n            print(f\"unknown id: {args.expense_id}\")\n            return 1"
+    ],
+    "source_file": "expense_tracker/cli.py"
+  },
+  {
+    "input": "What information does BudgetExceededError carry and how is its message formatted?",
+    "expected_output": "It stores category, limit, and attempted_total as attributes. The message reads like \"Category 'food' would reach 310.00, exceeding monthly limit 300.00\".",
+    "context": [
+      "class BudgetExceededError(Exception):\n    \"\"\"Raised when adding an expense would push a category over its monthly limit.\"\"\"\n\n    def __init__(self, category: str, limit: float, attempted_total: float) -> None:\n        self.category = category\n        self.limit = limit\n        self.attempted_total = attempted_total\n        super().__init__(\n            f\"Category {category!r} would reach {attempted_total:.2f}, \"\n            f\"exceeding monthly limit {limit:.2f}\"\n        )"
+    ],
+    "source_file": "expense_tracker/exceptions.py"
+  },
+  {
+    "input": "How are expenses loaded from the JSON file back into Expense objects?",
+    "expected_output": "ExpenseStore._load reads the JSON file and builds a dict of Expense objects keyed by id (amount as float, incurred_on parsed with date.fromisoformat), then records the _disk_fingerprint so save() can detect later changes.",
+    "context": [
+      "    def _load(self) -> None:\n        raw = json.loads(self.path.read_text(encoding=\"utf-8\"))\n        self._expenses = {\n            item[\"id\"]: Expense(\n                id=item[\"id\"],\n                amount=float(item[\"amount\"]),\n                category=item[\"category\"],\n                note=item.get(\"note\", \"\"),\n                incurred_on=date.fromisoformat(item[\"incurred_on\"]),\n            )\n            for item in raw.get(\"expenses\", [])\n        }\n        self._disk_fingerprint = self._fingerprint()\n"
+    ],
+    "source_file": "expense_tracker/store.py"
+  },
+  {
+    "input": "Which subcommands does the expense CLI offer?",
+    "expected_output": "add (amount, category, optional --note and --date), list, delete (by expense id), and summary. A global --db option chooses the JSON file (default expenses.json).",
+    "context": [
+      "def build_parser() -> argparse.ArgumentParser:\n    parser = argparse.ArgumentParser(prog=\"expense\", description=\"Personal expense tracker CLI\")\n    parser.add_argument(\"--db\", type=Path, default=DEFAULT_DB)\n    sub = parser.add_subparsers(dest=\"command\", required=True)\n\n    add = sub.add_parser(\"add\", help=\"Record an expense if it fits the monthly category budget\")\n    add.add_argument(\"amount\", type=float)\n    add.add_argument(\"category\")\n    add.add_argument(\"--note\", default=\"\")\n    add.add_argument(\"--date\", dest=\"incurred_on\", default=None)\n\n    sub.add_parser(\"list\", help=\"List expenses, newest first\")\n\n    delete = sub.add_parser(\"delete\", help=\"Delete by id\")\n    delete.add_argument(\"expense_id\")\n\n    sub.add_parser(\"summary\", help=\"Print category totals for the current month\")\n    return parser\n\n\ndef main(argv: list[str] | None = None) -> int:\n    args = build_parser().parse_args(argv)\n    store = ExpenseStore(args.db)\n    checker = BudgetChecker(DEFAULT_LIMITS)\n"
+    ],
+    "source_file": "expense_tracker/cli.py"
+  },
+  {
+    "input": "How does BudgetChecker.remaining calculate the remaining budget?",
+    "expected_output": "It returns None if the category has no configured limit; otherwise it returns the limit minus this month's spend for that category from store.totals_by_category.",
+    "context": [
+      "    def remaining(self, store: ExpenseStore, category: str, today: date | None = None) -> float | None:\n        limit = self.limit_for(category)\n        if limit is None:\n            return None\n        day = today or date.today()\n        spent = store.totals_by_category(day.year, day.month).get(category.lower().strip(), 0.0)"
+    ],
+    "source_file": "expense_tracker/budget.py"
+  },
+  {
+    "input": "How does for_month filter expenses?",
+    "expected_output": "It keeps expenses whose incurred_on year and month match, and if a category is given it additionally keeps only expenses whose (lowercased, stripped) category matches.",
+    "context": [
+      "    def for_month(self, year: int, month: int, category: str | None = None) -> list[Expense]:\n        items = [\n            e\n            for e in self._expenses.values()\n            if e.incurred_on.year == year and e.incurred_on.month == month\n        ]\n        if category:\n            needle = category.lower().strip()\n            items = [e for e in items if e.category == needle]"
+    ],
+    "source_file": "expense_tracker/store.py"
+  }
+]

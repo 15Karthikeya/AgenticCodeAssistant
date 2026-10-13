@@ -1,0 +1,54 @@
+[
+  {
+    "input": "How does ExpenseStore.save avoid rewriting the file when nothing changed?",
+    "expected_output": "It compares a JSON fingerprint of the current in-memory expenses to _disk_fingerprint (set on load/save). If they are equal, save() returns False without writing; otherwise it writes the file and returns True."
+  },
+  {
+    "input": "What exception type is raised for a missing expense id?",
+    "expected_output": "ExpenseNotFoundError, which subclasses KeyError."
+  },
+  {
+    "input": "Explain how BudgetChecker.ensure_within_budget uses the store.",
+    "expected_output": "It gets the category's monthly limit (returning if there is none), sums this month's spend via store.totals_by_category, adds the new amount, and raises BudgetExceededError if the total exceeds the limit."
+  },
+  {
+    "input": "What default budget limits does the CLI apply?",
+    "expected_output": "food 300, transport 120, fun 80 (DEFAULT_LIMITS in cli.py)."
+  },
+  {
+    "input": "Can I construct an Expense with amount 0?",
+    "expected_output": "No. Expense.__post_init__ raises ValueError because the amount must be positive."
+  },
+  {
+    "input": "In what order does list_all return expenses?",
+    "expected_output": "Newest first: sorted by incurred_on descending."
+  },
+  {
+    "input": "Which CLI exit code means an add was rejected because of the budget?",
+    "expected_output": "Exit code 2."
+  },
+  {
+    "input": "Where is the budget actually enforced: in ExpenseStore.add or somewhere else?",
+    "expected_output": "Not in ExpenseStore.add. The CLI's add command calls BudgetChecker.ensure_within_budget before calling store.add, and returns 2 if it raises BudgetExceededError."
+  },
+  {
+    "input": "What does the summary command print when there are no expenses this month?",
+    "expected_output": "It prints 'no expenses this month' and returns exit code 0."
+  },
+  {
+    "input": "Does the CLI save to disk after a successful delete?",
+    "expected_output": "Yes. After store.delete succeeds, the CLI calls store.save() and prints 'deleted <id>'."
+  },
+  {
+    "input": "Give me an overview of the modules in the expense_tracker package and what each is for.",
+    "expected_output": "models.py defines the Expense dataclass; store.py has ExpenseStore (in-memory storage with JSON persistence); budget.py has BudgetChecker (monthly category limits); exceptions.py defines ExpenseNotFoundError and BudgetExceededError; cli.py is the argparse command line (add, list, delete, summary)."
+  },
+  {
+    "input": "What happens if I add an expense in a category that has no budget limit configured?",
+    "expected_output": "ensure_within_budget returns immediately when limit_for(category) is None, so the expense is never rejected and is added normally."
+  },
+  {
+    "input": "Does this project support multiple currencies or currency conversion?",
+    "expected_output": "No. Expense only has id, amount, category, note and incurred_on; amounts are plain floats with no currency field or conversion logic."
+  }
+]
